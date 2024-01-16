@@ -26,12 +26,12 @@ func NewBioInfoRepository(pool postgresql.PGXPool, log *logrus.Entry) BioInfoRep
 }
 
 func (bIR *bioInfoRepository) GetByFilters(ctx context.Context, filters map[string]string) ([]*entity.BioInfo, error) {
-	b := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "national").PlaceholderFormat(sq.Dollar)
+	b := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "national").From("bioinfo")
 	for name, value := range filters {
-		b = b.Where(sq.Eq{name: value})
+		b = b.Where(sq.Eq{name: value}).PlaceholderFormat(sq.Dollar)
 	}
 
-	query, _, err := b.ToSql()
+	query, args, err := b.PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		bIR.log.Errorln(err)
 		return nil, err
@@ -40,6 +40,7 @@ func (bIR *bioInfoRepository) GetByFilters(ctx context.Context, filters map[stri
 	rows, err := bIR.pool.Query(
 		ctx,
 		query,
+		args...,
 	)
 	if err != nil {
 		bIR.log.Errorln(err)
@@ -47,8 +48,8 @@ func (bIR *bioInfoRepository) GetByFilters(ctx context.Context, filters map[stri
 	}
 	defer rows.Close()
 
-	bIs := make([]*entity.BioInfo, 0)
-	err = pgxscan.ScanAll(bIs, rows)
+	var bIs []*entity.BioInfo
+	err = pgxscan.ScanAll(&bIs, rows)
 	if err != nil {
 		bIR.log.Errorln(err)
 		return nil, err
@@ -104,9 +105,15 @@ func (bIR *bioInfoRepository) GetByID(ctx context.Context, id int) (*entity.BioI
 }
 
 func (bIR *bioInfoRepository) GetAll(ctx context.Context) ([]*entity.BioInfo, error) {
+	b := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "national").From("bioinfo")
+	query, _, err := b.ToSql()
+	if err != nil {
+		bIR.log.Errorln(err)
+		return nil, err
+	}
 	rows, err := bIR.pool.Query(
 		ctx,
-		"SELECT id, name, surname, patronymic, age, gender, national from bioinfo",
+		query,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return []*entity.BioInfo{}, nil
@@ -117,9 +124,11 @@ func (bIR *bioInfoRepository) GetAll(ctx context.Context) ([]*entity.BioInfo, er
 	}
 	defer rows.Close()
 
-	bIs := make([]*entity.BioInfo, 0)
-
+	var bIs []*entity.BioInfo
 	err = pgxscan.ScanAll(&bIs, rows)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return []*entity.BioInfo{}, nil
+	}
 	if err != nil {
 		bIR.log.Errorln(err)
 		return nil, err

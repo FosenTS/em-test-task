@@ -3,11 +3,11 @@ package entity
 type BioInfo struct {
 	Entity `json:"-" db:"-" binding:"-"`
 
-	ID         int    `json:"id" db:"id"`
-	Name       string `json:"name" db:"name"`
-	Surname    string `json:"surname" db:"surname"`
-	Patronymic string `json:"patronymic" db:"patronymic"`
-	Age        int    `json:"age" db:"age"`
-	Gender     string `json:"gender" db:"gender"`
-	National   string `json:"national" db:"national"`
+	ID         int    `json:"id" db:"id" binding:"required"`
+	Name       string `json:"name" db:"name" binding:"required"`
+	Surname    string `json:"surname" db:"surname" binding:"required"`
+	Patronymic string `json:"patronymic" db:"patronymic" binding:"required"`
+	Age        int    `json:"age" db:"age" binding:"required"`
+	Gender     string `json:"gender" db:"gender" binding:"required"`
+	National   string `json:"national" db:"national" binding:"required"`
 }
